@@ -26,8 +26,12 @@ Thumbs.db
 .idea 
 *.hprof 
 #.idea/workspace.xml - remove # and delete .idea if it better suit your needs. 
-.gradle 
-build/ 
- 
+.gradle
+.idea
+.gradle/4.1
+build/
+app/app.iml
+sqlite-vanilla.iml
+local.properties
 #NDK 
 obj/ 
