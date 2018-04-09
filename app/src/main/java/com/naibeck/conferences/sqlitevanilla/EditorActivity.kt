@@ -68,7 +68,6 @@ class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor
         genderSpinner.setOnTouchListener(this)
 
         setupSpinner()
-
     }
 
     private fun setupSpinner() {

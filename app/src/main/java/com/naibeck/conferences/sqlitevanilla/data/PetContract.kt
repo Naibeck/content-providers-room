@@ -37,6 +37,9 @@ class PetContract private constructor() {
          */
         val CONTENT_URI: Uri? = Uri.withAppendedPath(BASE_CONTENT_URI, PETS_PATH)
 
+        /**
+         * Validate if current gender is a valid one
+         */
         fun isValidGender(gender: Int): Boolean {
             return gender == PetEntry.GENDER_UNKNOWN || gender == PetEntry.GENDER_MALE || gender == PetEntry.GENDER_FEMALE
         }

@@ -23,7 +23,9 @@ class CatalogActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Curso
         private const val PETS_CURSOR = 100
     }
 
-    private lateinit var petCursorAdapter: PetCursorAdapter
+    private val petCursorAdapter by lazy {
+        PetCursorAdapter(this, null)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +41,6 @@ class CatalogActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Curso
 
         val petList = findViewById<ListView>(R.id.petList)
         val emptyView = findViewById<View>(R.id.empty_view)
-        petCursorAdapter = PetCursorAdapter(this, null)
         petList.adapter = petCursorAdapter
         petList.emptyView = emptyView
 

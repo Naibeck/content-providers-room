@@ -28,7 +28,7 @@ class PetDBHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
     }
 
     override fun onUpgrade(database: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-
+        // Nothing to do since this is the only version.
     }
 
 }

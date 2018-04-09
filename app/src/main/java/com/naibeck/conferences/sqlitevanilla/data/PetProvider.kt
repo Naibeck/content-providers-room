@@ -37,7 +37,6 @@ class PetProvider : ContentProvider() {
 
     override fun insert(uri: Uri?, values: ContentValues?): Uri? {
         val match = petUriMatcher.match(uri)
-
         return when (match) {
             PETS -> {
                 insertPet(uri, values)
@@ -50,7 +49,7 @@ class PetProvider : ContentProvider() {
     override fun query(uri: Uri?, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? {
         val sqLiteDatabase = petDBHelper.readableDatabase
         val match = petUriMatcher.match(uri)
-        var cursor: Cursor? = when (match) {
+        var cursor = when (match) {
             PETS -> {
                 sqLiteDatabase.query(PetContract.TABLE_NAME, projection, selection, selectionArgs, null, null, sortOrder)
             }
@@ -66,7 +65,6 @@ class PetProvider : ContentProvider() {
         }
 
         cursor?.setNotificationUri(context.contentResolver, uri)
-
         return cursor
     }
 
@@ -131,17 +129,7 @@ class PetProvider : ContentProvider() {
         val gender = values?.getAsInteger(PetContract.COLUMN_PET_GENDER)
         val weight = values?.getAsInteger(PetContract.COLUMN_PET_WEIGHT)
 
-        if (name == null || name?.isEmpty()) {
-            throw IllegalArgumentException("Pet name must be provided")
-        }
-
-        if (gender == null || !PetContract.isValidGender(gender)) {
-            throw IllegalArgumentException("Pet gender must be valid")
-        }
-
-        if (weight == null || weight < 0) {
-            throw IllegalArgumentException("Pet weight must be valid")
-        }
+        validateValuesEntries(name, gender, weight)
 
         return when (id) {
             -1L -> {
@@ -161,17 +149,7 @@ class PetProvider : ContentProvider() {
         val gender = values?.getAsInteger(PetContract.COLUMN_PET_GENDER)
         val weight = values?.getAsInteger(PetContract.COLUMN_PET_WEIGHT)
 
-        if (name == null || name?.isEmpty()) {
-            throw IllegalArgumentException("Pet name must be provided")
-        }
-
-        if (gender == null || !PetContract.isValidGender(gender)) {
-            throw IllegalArgumentException("Pet gender must be valid")
-        }
-
-        if (weight == null || weight < 0) {
-            throw IllegalArgumentException("Pet weight must be valid")
-        }
+        validateValuesEntries(name, gender, weight)
 
         if (values != null && values?.size() == 0) {
             return 0
@@ -185,5 +163,19 @@ class PetProvider : ContentProvider() {
         }
 
         return rowsUpdated
+    }
+
+    private fun validateValuesEntries(name: String?, gender: Int?, weight: Int?) {
+        if (name == null || name?.isEmpty()) {
+            throw IllegalArgumentException("Pet name must be provided")
+        }
+
+        if (gender == null || !PetContract.isValidGender(gender)) {
+            throw IllegalArgumentException("Pet gender must be valid")
+        }
+
+        if (weight == null || weight < 0) {
+            throw IllegalArgumentException("Pet weight must be valid")
+        }
     }
 }
