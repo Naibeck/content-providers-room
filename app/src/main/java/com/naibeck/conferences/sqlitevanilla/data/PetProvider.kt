@@ -20,7 +20,7 @@ class PetProvider : ContentProvider() {
         const val TAG = "pet.provider"
     }
 
-    val petUriMatcher = UriMatcher(UriMatcher.NO_MATCH)
+    private val petUriMatcher = UriMatcher(UriMatcher.NO_MATCH)
 
     init {
         petUriMatcher.addURI(PetContract.CONTENT_AUTHORITY, PetContract.PETS_PATH, PETS)
@@ -65,6 +65,8 @@ class PetProvider : ContentProvider() {
             }
         }
 
+        cursor?.setNotificationUri(context.contentResolver, uri)
+
         return cursor
     }
 
@@ -88,7 +90,7 @@ class PetProvider : ContentProvider() {
     override fun delete(uri: Uri?, selection: String?, selectionArgs: Array<out String>?): Int {
         val match = petUriMatcher.match(uri)
         val database = petDBHelper.writableDatabase
-        return when (match) {
+        val rowsDeleted = when (match) {
             PETS -> {
                 database.delete(PetContract.TABLE_NAME, selection, selectionArgs)
             }
@@ -102,6 +104,12 @@ class PetProvider : ContentProvider() {
                 0
             }
         }
+
+        if (rowsDeleted != 0) {
+            context.contentResolver.notifyChange(uri, null)
+        }
+
+        return rowsDeleted
     }
 
     override fun getType(uri: Uri?): String? {
@@ -142,6 +150,7 @@ class PetProvider : ContentProvider() {
                 null
             }
             else -> {
+                context.contentResolver.notifyChange(uri, null)
                 ContentUris.withAppendedId(uri, id)
             }
         }
@@ -169,6 +178,12 @@ class PetProvider : ContentProvider() {
         }
 
         val database = petDBHelper.writableDatabase
-        return database.update(PetContract.TABLE_NAME, values, selection, selectionArgs)
+        val rowsUpdated = database.update(PetContract.TABLE_NAME, values, selection, selectionArgs)
+
+        if (rowsUpdated != 0) {
+            context.contentResolver.notifyChange(uri, null)
+        }
+
+        return rowsUpdated
     }
 }
