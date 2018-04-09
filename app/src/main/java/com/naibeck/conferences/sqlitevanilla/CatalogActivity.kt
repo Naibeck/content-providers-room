@@ -9,13 +9,8 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.TextView
 import com.naibeck.conferences.sqlitevanilla.data.PetContract
-import com.naibeck.conferences.sqlitevanilla.data.PetDBHelper
 
 class CatalogActivity : AppCompatActivity() {
-
-    private val dbHelper by lazy {
-        PetDBHelper(this)
-    }
 
     override fun onStart() {
         super.onStart()
@@ -51,9 +46,9 @@ class CatalogActivity : AppCompatActivity() {
     }
 
     private fun displayDatabaseInfo() {
-        val database = dbHelper.readableDatabase
+        val projection = arrayOf(PetContract.ID, PetContract.COLUMN_PET_NAME, PetContract.COLUMN_PET_BREED, PetContract.COLUMN_PET_GENDER, PetContract.COLUMN_PET_WEIGHT)
 
-        val cursor = database.query(PetContract.TABLE_NAME, null, null, null, null, null, null)
+        val cursor = contentResolver.query(PetContract.CONTENT_URI, projection, null, null, null)
         val displayView = findViewById<TextView>(R.id.text_view_pet)
         cursor.use { cursor ->
             displayView.text = "The pets table contains ${cursor.count} pets.\n\n"
@@ -62,7 +57,7 @@ class CatalogActivity : AppCompatActivity() {
             val nameColumnIndex = cursor.getColumnIndex(PetContract.COLUMN_PET_NAME)
             val breedColumnIndex = cursor.getColumnIndex(PetContract.COLUMN_PET_BREED)
             val weightColumnIndex = cursor.getColumnIndex(PetContract.COLUMN_PET_WEIGHT)
-            while(cursor.moveToNext()) {
+            while (cursor.moveToNext()) {
                 val currentId = cursor.getInt(idColumnIndex)
                 val currentName = cursor.getString(nameColumnIndex)
                 val currentBreed = cursor.getString(breedColumnIndex)
@@ -73,14 +68,11 @@ class CatalogActivity : AppCompatActivity() {
     }
 
     private fun insertPet() {
-        val database = dbHelper.writableDatabase
-
         val values = ContentValues()
         values.put(PetContract.COLUMN_PET_NAME, "Chikuwa")
         values.put(PetContract.COLUMN_PET_BREED, "Chihuahua")
         values.put(PetContract.COLUMN_PET_GENDER, PetContract.GENDER_FEMALE)
         values.put(PetContract.COLUMN_PET_WEIGHT, 7)
-
-        database.insert(PetContract.TABLE_NAME, null, values)
+        contentResolver.insert(PetContract.CONTENT_URI, values)
     }
 }

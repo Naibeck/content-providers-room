@@ -13,7 +13,6 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.Toast
 import com.naibeck.conferences.sqlitevanilla.data.PetContract
-import com.naibeck.conferences.sqlitevanilla.data.PetDBHelper
 
 /**
  * Created by Kevin Gomez on 4/3/2018.
@@ -27,10 +26,6 @@ class EditorActivity : AppCompatActivity() {
     private lateinit var genderSpinner: Spinner
 
     private var gender = PetContract.GENDER_UNKNOWN
-
-    private val dbHelper by lazy {
-        PetDBHelper(this)
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,7 +86,6 @@ class EditorActivity : AppCompatActivity() {
         val breed = breedEditText.text.toString().trim()
         val weight = weightEditText.text.toString().trim().toInt()
 
-        val database = dbHelper.writableDatabase
         val values = ContentValues()
 
         values.put(PetContract.COLUMN_PET_NAME, name)
@@ -99,10 +93,10 @@ class EditorActivity : AppCompatActivity() {
         values.put(PetContract.COLUMN_PET_GENDER, gender)
         values.put(PetContract.COLUMN_PET_WEIGHT, weight)
 
-        val id = database.insert(PetContract.TABLE_NAME, null, values)
-        val message = when (id) {
-            -1L -> "Error with saving pet"
-            else -> "Pet saved with row id: $id"
+        val uri = contentResolver.insert(PetContract.CONTENT_URI, values)
+        val message = when (uri) {
+            null -> getString(R.string.editor_insert_pet_failed)
+            else -> getString(R.string.editor_insert_pet_successful)
         }
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
