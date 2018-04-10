@@ -9,6 +9,7 @@ import android.content.Loader
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
 import android.support.v4.app.NavUtils
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
@@ -20,13 +21,15 @@ import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.Toast
-import com.naibeck.conferences.sqlitevanilla.data.PetContract
+import com.naibeck.conferences.sqlitevanilla.persistence.Pet
+import com.naibeck.conferences.sqlitevanilla.provider.PetContentObserver
+import com.naibeck.conferences.sqlitevanilla.provider.PetContentProvider
 
 /**
  * Created by Kevin Gomez on 4/3/2018.
  * Applaudo Studios
  */
-class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor>, View.OnTouchListener {
+class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor>, View.OnTouchListener, PetContentObserver.PetContentContract {
     companion object {
         private const val PET_CURSOR = 101
     }
@@ -38,8 +41,12 @@ class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor
 
     private var currentPetUri: Uri? = null
     private var petHasChanged = false
+    private var gender = Pet.GENDER_UNKNOWN
+    private var isDeleted = false
 
-    private var gender = PetContract.GENDER_UNKNOWN
+    private val petObserver by lazy {
+        PetContentObserver(Handler(), this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +75,7 @@ class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor
         genderSpinner.setOnTouchListener(this)
 
         setupSpinner()
+        contentResolver.registerContentObserver(PetContentProvider.CONTENT_URI, true, petObserver)
     }
 
     private fun setupSpinner() {
@@ -77,20 +85,25 @@ class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor
         genderSpinner.adapter = genderSpinnerAdapter
         genderSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {
-                gender = PetContract.GENDER_UNKNOWN
+                gender = Pet.GENDER_UNKNOWN
             }
 
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 var selection = parent?.getItemAtPosition(position) as String
                 if (selection.isNotEmpty()) {
                     gender = when (selection) {
-                        getString(R.string.gender_male) -> PetContract.GENDER_MALE
-                        getString(R.string.gender_female) -> PetContract.GENDER_FEMALE
-                        else -> PetContract.GENDER_UNKNOWN
+                        getString(R.string.gender_male) -> Pet.GENDER_MALE
+                        getString(R.string.gender_female) -> Pet.GENDER_FEMALE
+                        else -> Pet.GENDER_UNKNOWN
                     }
                 }
             }
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        contentResolver.unregisterContentObserver(petObserver)
     }
 
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
@@ -137,29 +150,29 @@ class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor
     }
 
     override fun onCreateLoader(loaderId: Int, bundle: Bundle?): Loader<Cursor> {
-        val projection = arrayOf(PetContract.ID, PetContract.COLUMN_PET_NAME, PetContract.COLUMN_PET_BREED, PetContract.COLUMN_PET_GENDER, PetContract.COLUMN_PET_WEIGHT)
+        val projection = arrayOf(Pet.ID, Pet.COLUMN_PET_NAME, Pet.COLUMN_PET_BREED, Pet.COLUMN_PET_GENDER, Pet.COLUMN_PET_WEIGHT)
         return CursorLoader(this, currentPetUri, projection, null, null, null)
     }
 
     override fun onLoadFinished(loader: Loader<Cursor>?, data: Cursor?) {
         if (data != null && data?.moveToFirst()) {
-            val nameColumnIndex = data?.getColumnIndex(PetContract.COLUMN_PET_NAME)
-            val breedColumnIndex = data?.getColumnIndex(PetContract.COLUMN_PET_BREED)
-            val genderColumnIndex = data?.getColumnIndex(PetContract.COLUMN_PET_GENDER)
-            val weightColumnIndex = data?.getColumnIndex(PetContract.COLUMN_PET_WEIGHT)
+            val nameColumnIndex = data.getColumnIndex(Pet.COLUMN_PET_NAME)
+            val breedColumnIndex = data.getColumnIndex(Pet.COLUMN_PET_BREED)
+            val genderColumnIndex = data.getColumnIndex(Pet.COLUMN_PET_GENDER)
+            val weightColumnIndex = data.getColumnIndex(Pet.COLUMN_PET_WEIGHT)
 
-            val name = data?.getString(nameColumnIndex)
-            val breed = data?.getString(breedColumnIndex)
-            val gender = data?.getInt(genderColumnIndex)
-            val weight = data?.getInt(weightColumnIndex)
+            val name = data.getString(nameColumnIndex)
+            val breed = data.getString(breedColumnIndex)
+            val gender = data.getInt(genderColumnIndex)
+            val weight = data.getInt(weightColumnIndex)
 
             nameEditText.setText(name)
             breedEditText.setText(breed)
             weightEditText.setText(weight.toString())
 
             when (gender) {
-                PetContract.GENDER_MALE -> genderSpinner.setSelection(1)
-                PetContract.GENDER_FEMALE -> genderSpinner.setSelection(2)
+                Pet.GENDER_MALE -> genderSpinner.setSelection(1)
+                Pet.GENDER_FEMALE -> genderSpinner.setSelection(2)
                 else -> genderSpinner.setSelection(0)
             }
         }
@@ -190,6 +203,18 @@ class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor
         showUnsavedChangedDialog(discardButtonClickListener)
     }
 
+    override fun onSomethingChanged(changed: Boolean) {
+        if (currentPetUri == null) {
+            Toast.makeText(this, getString(R.string.editor_insert_pet_successful), Toast.LENGTH_SHORT).show()
+        } else {
+            if (isDeleted) {
+                Toast.makeText(this, getString(R.string.editor_delete_pet_successful), Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, getString(R.string.editor_update_pet_successful), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun savePet() {
         if (nameEditText.text.isEmpty() || weightEditText.text.isEmpty()) {
             return
@@ -204,10 +229,10 @@ class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor
 
         val values = ContentValues()
 
-        values.put(PetContract.COLUMN_PET_NAME, name)
-        values.put(PetContract.COLUMN_PET_BREED, breed)
-        values.put(PetContract.COLUMN_PET_GENDER, gender)
-        values.put(PetContract.COLUMN_PET_WEIGHT, weight)
+        values.put(Pet.COLUMN_PET_NAME, name)
+        values.put(Pet.COLUMN_PET_BREED, breed)
+        values.put(Pet.COLUMN_PET_GENDER, gender)
+        values.put(Pet.COLUMN_PET_WEIGHT, weight)
 
         if (currentPetUri != null) {
             updatePet(values)
@@ -217,23 +242,11 @@ class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor
     }
 
     private fun insertPet(values: ContentValues) {
-        val uri = contentResolver.insert(PetContract.CONTENT_URI, values)
-        val message = when (uri) {
-            null -> getString(R.string.editor_insert_pet_failed)
-            else -> getString(R.string.editor_insert_pet_successful)
-        }
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        contentResolver.insert(PetContentProvider.CONTENT_URI, values)
     }
 
     private fun updatePet(values: ContentValues) {
-        val updatedRows = contentResolver.update(currentPetUri, values, null, null)
-
-        val message = when (updatedRows) {
-            0 -> getString(R.string.editor_update_pet_failed)
-            else -> getString(R.string.editor_update_pet_successful)
-        }
-
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        contentResolver.update(currentPetUri, values, null, null)
     }
 
     private fun showUnsavedChangedDialog(discardButtonClickListener: DialogInterface.OnClickListener) {
@@ -262,15 +275,9 @@ class EditorActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor
 
     private fun deletePet() {
         if (currentPetUri != null) {
-            val rowsDeleted = contentResolver.delete(currentPetUri, null, null)
-            val message = when (rowsDeleted) {
-                0 -> getString(R.string.editor_delete_pet_failed)
-                else -> getString(R.string.editor_delete_pet_successful)
-            }
-
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            contentResolver.delete(currentPetUri, null, null)
+            isDeleted = true
         }
-
         finish()
     }
 }

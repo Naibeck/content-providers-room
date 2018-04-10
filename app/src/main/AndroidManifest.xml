@@ -23,7 +23,7 @@
             android:theme="@style/EditorTheme" />
 
         <provider
-            android:name=".data.PetProvider"
+            android:name=".provider.PetContentProvider"
             android:authorities="com.naibeck.conferences.pets"
             android:exported="false" />
     </application>

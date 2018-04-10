@@ -8,7 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CursorAdapter
 import android.widget.TextView
-import com.naibeck.conferences.sqlitevanilla.data.PetContract
+import com.naibeck.conferences.sqlitevanilla.persistence.Pet
 
 /**
  * Created by Kevin Gomez on 4/9/2018.
@@ -22,8 +22,8 @@ class PetCursorAdapter(context: Context, cursor: Cursor?) : CursorAdapter(contex
         val petName = view?.findViewById<TextView>(R.id.name)
         val petBreed = view?.findViewById<TextView>(R.id.summary)
 
-        val nameColumnIndex = cursor?.getColumnIndex(PetContract.COLUMN_PET_NAME)
-        val breedColumnIndex = cursor?.getColumnIndex(PetContract.COLUMN_PET_BREED)
+        val nameColumnIndex = cursor?.getColumnIndex(Pet.COLUMN_PET_NAME)
+        val breedColumnIndex = cursor?.getColumnIndex(Pet.COLUMN_PET_BREED)
 
         val name = cursor?.getString(nameColumnIndex!!)
         var breed = cursor?.getString(breedColumnIndex!!)

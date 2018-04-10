@@ -15,7 +15,8 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ListView
-import com.naibeck.conferences.sqlitevanilla.data.PetContract
+import com.naibeck.conferences.sqlitevanilla.persistence.Pet
+import com.naibeck.conferences.sqlitevanilla.provider.PetContentProvider
 
 class CatalogActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Cursor>, AdapterView.OnItemClickListener {
 
@@ -65,8 +66,8 @@ class CatalogActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Curso
     }
 
     override fun onCreateLoader(loaderId: Int, bundle: Bundle?): Loader<Cursor> {
-        val projection = arrayOf(PetContract.ID, PetContract.COLUMN_PET_NAME, PetContract.COLUMN_PET_BREED)
-        return CursorLoader(this, PetContract.CONTENT_URI, projection, null, null, null)
+        val projection = arrayOf(Pet.ID, Pet.COLUMN_PET_NAME, Pet.COLUMN_PET_BREED)
+        return CursorLoader(this, PetContentProvider.CONTENT_URI, projection, null, null, null)
     }
 
     override fun onLoadFinished(loader: Loader<Cursor>?, cursor: Cursor?) {
@@ -79,21 +80,21 @@ class CatalogActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Curso
 
     override fun onItemClick(adapterVieew: AdapterView<*>?, view: View?, position: Int, id: Long) {
         val intent = Intent(this, EditorActivity::class.java)
-        val currentPetUri = ContentUris.withAppendedId(PetContract.CONTENT_URI, id)
+        val currentPetUri = ContentUris.withAppendedId(PetContentProvider.CONTENT_URI, id)
         intent.data = currentPetUri
         startActivity(intent)
     }
 
     private fun insertPet() {
         val values = ContentValues()
-        values.put(PetContract.COLUMN_PET_NAME, "Chikuwa")
-        values.put(PetContract.COLUMN_PET_BREED, "Chihuahua")
-        values.put(PetContract.COLUMN_PET_GENDER, PetContract.GENDER_FEMALE)
-        values.put(PetContract.COLUMN_PET_WEIGHT, 7)
-        contentResolver.insert(PetContract.CONTENT_URI, values)
+        values.put(Pet.COLUMN_PET_NAME, "Chikuwa")
+        values.put(Pet.COLUMN_PET_BREED, "Chihuahua")
+        values.put(Pet.COLUMN_PET_GENDER, Pet.GENDER_FEMALE)
+        values.put(Pet.COLUMN_PET_WEIGHT, 7)
+        contentResolver.insert(PetContentProvider.CONTENT_URI, values)
     }
 
     private fun deleteAllPets() {
-        contentResolver.delete(PetContract.CONTENT_URI, null, null)
+        contentResolver.delete(PetContentProvider.CONTENT_URI, null, null)
     }
 }
